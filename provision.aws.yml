@@ -1,0 +1,147 @@
+---
+- name: Provision AWS servers
+  hosts: 127.0.0.1
+  connection: local
+  tasks:
+
+#    - name: Create security group
+#      local_action: 
+#        module: ec2_group
+#        name: ep2
+#        description: access to the ep2 servers
+#        region: us-east-1
+#        rules:
+#          - proto: tcp
+#            from_port: 22
+#            to_port: 22
+#            cidr_ip: 0.0.0.0/0
+
+    - name: launch instances
+      local_action:
+        module: ec2
+        region: us-east-1
+        assign_public_ip: no
+#       network_interface: eni-deadbeef
+#       network_interfaces: ['eni-deadbeef', 'eni-5ca1ab1e']
+        monitoring: no
+        instance_tags:
+          costcenter: 'core services'
+          bootstrap: ansible
+#   Add more tags as needed
+#        volumes:
+#          - device_name: /dev/sdb
+#            snapshot: snap-abcdef12
+#            volume_type: io1
+#            iops: 1000
+#            volume_size: 100
+#            delete_on_termination: true
+
+# set your keypair: jhidalgo-keypair, rmorgan-keypair, jamster-keypair
+        keypair: jhidalgo-keypair
+
+# Security groups:
+#   sg-06ab5660: default vpc, IN all-sg, ssh: all, icmp: all | OUT: all
+#   sg-15c46273: workspace, IN: all from 10.0.6.0/24
+#                         | OUT: 10.0.6.0/24: all,
+#                                10.0.1.0/24: all, 10.0.0.0/24: all
+#   sg-439a6725: Default SSH, IN any:ssh | OUT: all
+        group: sg-06ab5660
+
+# Instance types:
+#   t2.micro:   vcpu: 1, mem: 1
+#   t2.small:   vcpu: 1, mem: 2
+#   t2.medium:  vcpu: 2, mem: 4
+#   t2.large:   vcpu: 2, mem: 8
+#   m3.medium:  vcpu: 1, mem: 3.75, Intel Xeon E5-2670 v2
+#   m3.large:   vcpu: 2, mem: 7.5
+#   m3.xlarge:  vcpu: 4, mem: 15
+#   m3.2xlarge: vcpu: 8, mem: 30
+#   m4.large:   vcpu: 2, mem: 8, Intel Xeon® E5-2676 v3
+#   m4.xlarge:  vcpu: 4, mem: 16
+#   m4.2xlarge: vcpu: 8, mem: 32
+#   m4.4xlarge: vcpu:16, mem: 64
+#   m4.10xlarge:vcpu:40, mem:160
+#   c3.large:   vcpu: 2, mem: 3.75, Intel Xeon E5-2680 v2
+#   c3.xlarge:  vcpu: 4, mem: 7.5
+#   c3.2xlarge: vcpu: 8, mem: 15
+#   c3.4xlarge: vcpu:16, mem: 30
+#   c3.8xlarge: vcpu:32, mem: 60
+#   c4.large:   vcpu: 2, mem: 3.75, Intel Xeon E5-2666 v3
+#   c4.xlarge:  vcpu: 4, mem: 7.5
+#   c4.2xlarge: vcpu: 8, mem: 15
+#   c4.4xlarge: vcpu:16, mem: 30
+#   c4.8xlarge: vcpu:36, mem: 60
+        instance_type: t2.small
+
+# Images:
+#   ami-61bbf104: CentOS Linux 7 x86_64 HVM
+#   ami-60b6c60a: Amazon Linux AMI 2015.09.1 x86_64 HVM GP2
+#   ami-d05e75b8: Ubuntu-trusty-14.04
+        image: ami-61bbf104
+
+# Instance Count
+        count: 2
+        wait: yes
+#       wait_timeout: 300
+
+
+# VPC Subnets:
+#    DMZ
+# 10.0.0.0/26     subnet-6350875e
+# 10.0.0.64/26    subnet-3e524949
+# 10.0.0.128/26   subnet-2c232275
+# 10.0.0.192/26   subnet-afbd9e84
+#    Support Subnet
+# 10.0.1.0/26     subnet-27d20c1a
+# 10.0.1.64/26    subnet-ad8261db
+# 10.0.1.128/26   subnet-c8a59f91
+# 10.0.1.192/26   subnet-39123812
+#    BV Production
+# 10.0.2.0/25     subnet-f2c912cf
+# 10.0.2.128/25   subnet-0159b477
+# 10.0.3.0/25     subnet-2cfdfa75
+#    DD Production 
+# 10.0.4.0/25     subnet-eacf14d7
+# 10.0.4.128/25   subnet-bd5bb6cb
+# 10.0.5.0/25     subnet-85fbfcdc
+# 10.0.5.128/25   subnet-85f0c7ae
+#    BV Workspaces
+# 10.0.6.0/26     subnet-bb2ef686
+# 10.0.6.64/26    subnet-95f61be3
+# 10.0.6.128/26   subnet-0266615b
+# 10.0.6.192/26   subnet-8a96a2a1
+#    BV PCI
+# 10.0.7.0/26     subnet-1ccc1721
+# 10.0.7.64/26    subnet-f654b980
+# 10.0.7.128/26   subnet-29f8ff70
+# 10.0.7.192/26   subnet-6dfdca46
+#    BV Sandbox
+# 10.0.28.0/25    subnet-c0eb30fd
+# 10.0.28.128/25  subnet-80b854f6
+# 10.0.29.0/25    subnet-a69e99ff
+# 10.0.29.128/25  subnet-f2d1e6d9
+#    BV DD Sandbox
+# 10.0.30.0/25    subnet-9e5087a3
+# 10.0.30.128/25  subnet-f5524982
+# 10.0.31.0/25    subnet-559cae0c
+# 10.0.31.128/25  subnet-e6bd9ecd
+        vpc_subnet_id: subnet-c0eb30fd
+      register: ec2
+    - name: add instances to group
+      add_host: hostname={{ item.private_ip }} groupname=launched
+      with_items: ec2.instances
+    - name: wait for ssh to be up
+      wait_for: host={{ item.private_ip }} port=22 delay=20 timeout=320 state=started
+      with_items: ec2.instances
+- name: apply roles to new instances
+  hosts: launched
+  gather_facts: true
+  sudo: true
+  roles:
+    - common
+    - ipaclient
+    - filebeat
+    - puppetclient
+    - collectd_client
+    - sensu_client
+

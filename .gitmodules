@@ -1,0 +1,18 @@
+[submodule "roles/collectd_client"]
+	path = roles/collectd_client
+	url = https://github.com/josebv/collectd_client
+[submodule "roles/common"]
+	path = roles/common
+	url = https://github.com/josebv/common
+[submodule "roles/filebeat"]
+	path = roles/filebeat
+	url = https://github.com/josebv/filebeat
+[submodule "roles/ipaclient"]
+	path = roles/ipaclient
+	url = https://github.com/josebv/ipaclient
+[submodule "roles/puppetclient"]
+	path = roles/puppetclient
+	url = https://github.com/josebv/puppetclient
+[submodule "roles/sensu_client"]
+	path = roles/sensu_client
+	url = https://github.com/josebv/sensu_client
